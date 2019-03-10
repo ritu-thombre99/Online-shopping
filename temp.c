@@ -30,6 +30,7 @@ typedef struct Customer_tag
 	char email[200];
 	char address[200];
 	int user_id;
+	int number_of_items_bought;
 	char paymentMode[50];
 	Product_type *wishlist;
 	Customer_Product_type *history;
@@ -183,7 +184,7 @@ Customer_Product_type* sort_favourites(Customer_Product_type* favourites)
 		ptr2 = favourites;
 		while(ptr2 -> next_product != NULL)
 		{
-			if(ptr2 -> quantity <= ptr2 -> next_product -> quantity)
+			if(ptr2 -> quantity < ptr2 -> next_product -> quantity)
 			{
 				quantity = ptr2 -> quantity;
 				ptr2 -> quantity = ptr2 -> next_product -> quantity;
@@ -316,20 +317,24 @@ void UserPage(int id,Product_type *Product[],Customer_type Customer[MAX])
 						}
 						else
 						{
-							printf("Are you sure you want to order:\n");
-							printf("1.Yes\n2.No\n");
 							printf("Category:%s\n",temp_product -> category);
 							printf("Model name:%s\n",temp_product -> Model_name);
 							printf("Price:%d\n",temp_product -> price);
 							printf("Purchases:%d\n",temp_product -> purchases);
 							printf("Availability:%d\n",temp_product -> availability);
 							int are_you_sure;
+							printf("Are you sure you want to buy this product\n1.Yes\n2.No\n");
 							scanf("%d",&are_you_sure);
 							if(are_you_sure == 1)
 							{
 								int quantity;
-								printf("Enter quantity:\n");
+								char Model_name[50];
+								strcpy(Model_name,temp_product -> Model_name);
+								printf("Enter quantity:");
 								scanf("%d",&quantity);
+								Customer[id - 1].number_of_items_bought = Customer[id - 1].number_of_items_bought + quantity;
+								temp_product -> purchases = temp_product -> purchases + quantity;
+								temp_product -> availability = temp_product -> availability - quantity;
 								printf("Enter payment mode\n");
 								printf("1.Buy Now Pay Later\n");
 								printf("2.Cash on Delivery\n");
@@ -342,55 +347,57 @@ void UserPage(int id,Product_type *Product[],Customer_type Customer[MAX])
 								scanf("\n");
 								scanf("%[^\n]s",paymentMode);
 								strcpy(Customer[id - 1].paymentMode,paymentMode);
-								temp_customer_product = (Customer_Product_type*)malloc(sizeof(Customer_Product_type));
-								strcpy(temp_customer_product -> Model_name,temp_product -> Model_name);
-								strcpy(temp_customer_product -> category,temp_product -> category);
-								temp_customer_product -> price = temp_product -> price;
-								temp_customer_product -> quantity = quantity;
-								temp_customer_product -> next_product = Customer[id - 1].history;
-								Customer[id - 1].history = temp_customer_product;
-								temp_product -> availability = temp_product -> availability - quantity;;
-								temp_product -> purchases = temp_product -> purchases + quantity;;
-								printf("Your order has been placed successfully\n");
-								Customer_Product_type *temp_customer_product1;
-								temp_customer_product1 = (Customer_Product_type*)malloc(sizeof(Customer_Product_type));
-								temp_customer_product1 -> quantity = temp_customer_product -> quantity;
-								temp_customer_product1 -> price = temp_customer_product -> price;
-								strcpy(temp_customer_product1 -> Model_name,temp_customer_product -> Model_name);
-								strcpy(temp_customer_product1 -> category,temp_customer_product -> category);
-								temp_customer_product1 -> next_product = NULL;
-								if(Customer[id - 1].favourites == NULL)
+								Customer_Product_type *history_temp;
+								history_temp = (Customer_Product_type*)malloc(sizeof(Customer_Product_type));
+								strcpy(history_temp -> Model_name,temp_product -> Model_name);
+								strcpy(history_temp -> category,temp_product -> category);
+								history_temp -> quantity = quantity;
+								history_temp  -> price = temp_product -> price;
+								history_temp -> next_product = NULL;
+								history_temp -> prev_product = NULL;
+								if(Customer[id - 1].history == NULL)
 								{
-									Customer[id - 1].favourites = temp_customer_product1;
+									Customer[id - 1].history = history_temp;
 								}
 								else
 								{
-									Customer_Product_type *temp_customer_product2;
-									temp_customer_product2 = Customer[id - 1].favourites;
+									history_temp -> next_product = Customer[id - 1].history;
+									Customer[id - 1].history -> prev_product = history_temp;
+									Customer[id - 1].history = history_temp;
+								}
+								printf("Your order has been placed successfully\n");
+								Customer_Product_type *favourites_temp,*favourites_temp1;
+								favourites_temp = (Customer_Product_type*)malloc(sizeof(Customer_Product_type));
+								strcpy(favourites_temp -> Model_name,temp_product -> Model_name);
+								strcpy(favourites_temp -> category,temp_product -> category);
+								favourites_temp -> quantity = quantity;
+								favourites_temp  -> price = temp_product -> price;
+								favourites_temp -> next_product = NULL;
+								favourites_temp -> prev_product = NULL;
+								if(Customer[id - 1].favourites == NULL)
+								{
+									Customer[id - 1].favourites = favourites_temp;
+								}
+								else
+								{
 									int found = 0;
-									while(temp_customer_product2 != NULL && found == 0)
-									{		
-										if(strcmp(temp_customer_product2->Model_name,temp_product-> Model_name)==0)
+									favourites_temp1 = Customer[id - 1].favourites;
+									while(favourites_temp1 != NULL && found == 0)
+									{
+										if(strcmp(favourites_temp1 -> Model_name,Model_name) == 0)
 										{
-											temp_customer_product2 -> quantity = temp_customer_product2 -> quantity + quantity;
 											found = 1;
+											favourites_temp1 -> quantity = favourites_temp1 -> quantity + quantity;
 										}
-										temp_customer_product2 = temp_customer_product2 -> next_product;
+										favourites_temp1 = favourites_temp1 -> next_product;
 									}
 									if(found == 0)
 									{
-										if(Customer[id - 1].favourites == NULL)
-										{
-										//temp_customer_product1 -> next_product = Customer.favourites;
-											Customer[id - 1].favourites = temp_customer_product1;
-										}
-										else
-										{
-											temp_customer_product1 -> next_product = Customer[id - 1].favourites;
-											Customer[id - 1].favourites = temp_customer_product;
-										}
+										favourites_temp -> next_product = Customer[id - 1].favourites;
+										Customer[id - 1].favourites -> prev_product = favourites_temp;
+										Customer[id - 1].favourites = favourites_temp;
 									}
-								Customer[id - 1].favourites = sort_favourites(Customer[id - 1].favourites);
+									Customer[id - 1].favourites = sort_favourites(Customer[id - 1].favourites);
 								}
 							}
 							else
@@ -521,6 +528,7 @@ void UserPage(int id,Product_type *Product[],Customer_type Customer[MAX])
 								quantity = temp_customer_product -> quantity;
 								temp_product -> availability = temp_product -> availability + temp_customer_product -> quantity;
 								temp_product -> purchases = temp_product -> purchases - temp_customer_product -> quantity;
+								Customer[id - 1].number_of_items_bought = Customer[id - 1].number_of_items_bought - quantity;
 							}
 							temp_product = temp_product -> next_product;
 						}
@@ -551,7 +559,7 @@ void UserPage(int id,Product_type *Product[],Customer_type Customer[MAX])
 							free(prev);
 							while(strcmp(customer_product1 -> Model_name,Model_name) != 0)
 							{
-								printf("\n\nHello\n\n");
+								//printf("\n\nHello\n\n");
 								prev = customer_product1;
 								customer_product1 = customer_product1 -> next_product;
 							}
@@ -578,18 +586,21 @@ void UserPage(int id,Product_type *Product[],Customer_type Customer[MAX])
 			{
 				printf("\n\nHere's your wishlist\n\n");
 				temp_product = Customer[id - 1].wishlist;
-				while(temp_product != NULL)
-				{
-					printf("Category:%s\n",temp_product -> category);
-					printf("Model name:%s\n",temp_product -> Model_name);
-					printf("Price:%d\n",temp_product -> price);
-					printf("Purchases:%d\n",temp_product -> purchases);
-					printf("Availability:%d\n",temp_product -> availability);
-					temp_product = temp_product -> next_product;
-					printf("\n");
-				}
 				if(temp_product == NULL)
 					printf("\n\nYou have no wishlist\n\n");
+				else
+				{
+					while(temp_product != NULL)
+					{
+						printf("Category:%s\n",temp_product -> category);
+						printf("Model name:%s\n",temp_product -> Model_name);
+						printf("Price:%d\n",temp_product -> price);
+						printf("Purchases:%d\n",temp_product -> purchases);
+						printf("Availability:%d\n",temp_product -> availability);
+						temp_product = temp_product -> next_product;
+						printf("\n");
+					}
+				}
 				break;
 			}
 			case 6:
@@ -621,6 +632,7 @@ void UserPage(int id,Product_type *Product[],Customer_type Customer[MAX])
 				printf("Customer E-mail:%s\n",Customer[id - 1].email);
 				printf("Customer phone:%ld\n",Customer[id - 1].phone);
 				printf("Customer Payment Mode:%s\n",Customer[id - 1].paymentMode);
+				printf("Number of items customer has broought:%d\n",Customer[id - 1].number_of_items_bought);
 				printf("\n\n\n");
 				printf("Customer's history\n\n");
 				temp_customer_product = Customer[id - 1].history;
@@ -705,12 +717,19 @@ void UserPage(int id,Product_type *Product[],Customer_type Customer[MAX])
 							printf("Purchases:%d\n",temp_product -> purchases);
 							printf("Availability:%d\n",temp_product -> availability);
 							int are_you_sure;
+							char Model_name[50];
+							strcpy(Model_name,temp_product -> Model_name);
 							scanf("%d",&are_you_sure);
 							if(are_you_sure == 1)
 							{
 								int quantity;
-								printf("Enter quantity:\n");
+								char Model_name[50];
+								strcpy(Model_name,temp_product -> Model_name);
+								printf("Enter quantity:");
 								scanf("%d",&quantity);
+								Customer[id - 1].number_of_items_bought = Customer[id - 1].number_of_items_bought + quantity;
+								temp_product -> purchases = temp_product -> purchases + quantity;
+								temp_product -> availability = temp_product -> availability - quantity;
 								printf("Enter payment mode\n");
 								printf("1.Buy Now Pay Later\n");
 								printf("2.Cash on Delivery\n");
@@ -723,56 +742,111 @@ void UserPage(int id,Product_type *Product[],Customer_type Customer[MAX])
 								scanf("\n");
 								scanf("%[^\n]s",paymentMode);
 								strcpy(Customer[id - 1].paymentMode,paymentMode);
-								temp_customer_product = (Customer_Product_type*)malloc(sizeof(Customer_Product_type));
-								strcpy(temp_customer_product -> Model_name,temp_product -> Model_name);
-								strcpy(temp_customer_product -> category,temp_product -> category);
-								temp_customer_product -> price = temp_product -> price;
-								temp_customer_product -> quantity = quantity;
-								temp_customer_product -> next_product = Customer[id - 1].history;
-								Customer[id - 1].history = temp_customer_product;
-								temp_product -> availability = temp_product -> availability - quantity;;
-								temp_product -> purchases = temp_product -> purchases + quantity;;
-								printf("Your order has been placed successfully\n");
-								Customer_Product_type *temp_customer_product1;
-								temp_customer_product1 = (Customer_Product_type*)malloc(sizeof(Customer_Product_type));
-								temp_customer_product1 -> quantity = temp_customer_product -> quantity;
-								temp_customer_product1 -> price = temp_customer_product -> price;
-								strcpy(temp_customer_product1 -> Model_name,temp_customer_product -> Model_name);
-								strcpy(temp_customer_product1 -> category,temp_customer_product -> category);
-								temp_customer_product1 -> next_product = NULL;
-								if(Customer[id - 1].favourites == NULL)
+								Customer_Product_type *history_temp;
+								history_temp = (Customer_Product_type*)malloc(sizeof(Customer_Product_type));
+								strcpy(history_temp -> Model_name,temp_product -> Model_name);
+								strcpy(history_temp -> category,temp_product -> category);
+								history_temp -> quantity = quantity;
+								history_temp  -> price = temp_product -> price;
+								history_temp -> next_product = NULL;
+								history_temp -> prev_product = NULL;
+								if(Customer[id - 1].history == NULL)
 								{
-									Customer[id - 1].favourites = temp_customer_product1;
+									Customer[id - 1].history = history_temp;
 								}
 								else
 								{
-									Customer_Product_type *temp_customer_product2;
-									temp_customer_product2 = Customer[id - 1].favourites;
+									history_temp -> next_product = Customer[id - 1].history;
+									Customer[id - 1].history -> prev_product = history_temp;
+									Customer[id - 1].history = history_temp;
+								}
+								printf("Your order has been placed successfully\n");
+								Customer_Product_type *favourites_temp,*favourites_temp1;
+								favourites_temp = (Customer_Product_type*)malloc(sizeof(Customer_Product_type));
+								strcpy(favourites_temp -> Model_name,temp_product -> Model_name);
+								strcpy(favourites_temp -> category,temp_product -> category);
+								favourites_temp -> quantity = quantity;
+								favourites_temp  -> price = temp_product -> price;
+								favourites_temp -> next_product = NULL;
+								favourites_temp -> prev_product = NULL;
+								if(Customer[id - 1].favourites == NULL)
+								{
+									Customer[id - 1].favourites = favourites_temp;
+								}
+								else
+								{
 									int found = 0;
-									while(temp_customer_product2 != NULL && found == 0)
-									{		
-										if(strcmp(temp_customer_product2->Model_name,temp_product-> Model_name)==0)
+									favourites_temp1 = Customer[id - 1].favourites;
+									while(favourites_temp1 != NULL && found == 0)
+									{
+										if(strcmp(favourites_temp1 -> Model_name,Model_name) == 0)
 										{
-											temp_customer_product2 -> quantity = temp_customer_product2 -> quantity + quantity;
 											found = 1;
+											favourites_temp1 -> quantity = favourites_temp1 -> quantity + quantity;
 										}
-										temp_customer_product2 = temp_customer_product2 -> next_product;
+										favourites_temp1 = favourites_temp1 -> next_product;
 									}
 									if(found == 0)
 									{
-										if(Customer[id - 1].favourites == NULL)
+										favourites_temp -> next_product = Customer[id - 1].favourites;
+										Customer[id - 1].favourites -> prev_product = favourites_temp;
+										Customer[id - 1].favourites = favourites_temp;
+									}
+									Customer[id - 1].favourites = sort_favourites(Customer[id - 1].favourites);
+								}
+								temp_product = Customer[id - 1].wishlist;
+								Product_type *prev = NULL,*temp;
+								while(strcmp(temp_product -> Model_name,Model_name) != 0)
+								{
+									prev = temp_product;
+									temp_product = temp_product -> next_product;
+								}
+								if(temp_product -> availability == 0)
+								{
+									if(prev == NULL)
+									{
+										temp = Customer[id - 1].wishlist;
+										Customer[id - 1].wishlist = Customer[id - 1].wishlist -> next_product;
+										free(temp);
+									}
+									else
+									{
+										temp = temp_product;
+										prev -> next_product = temp_product -> next_product;
+										temp_product = temp_product -> next_product;
+										//temp_product -> prev_product = prev;
+										free(temp);
+										printf("\nProduct removed from your wishlidt\n");
+									}
+								}
+								else
+								{
+									printf("\nDo you want to remove %s from your wishlist\n1.Yes\n2.No\n",temp_product -> Model_name);
+									int want_to_remove;
+									scanf("%d",&want_to_remove);
+									if(want_to_remove == 1)
+									{
+										if(prev == NULL)
 										{
-										//temp_customer_product1 -> next_product = Customer.favourites;
-											Customer[id - 1].favourites = temp_customer_product1;
+											temp = Customer[id - 1].wishlist;
+											Customer[id - 1].wishlist = Customer[id - 1].wishlist -> next_product;
+											free(temp);
 										}
 										else
 										{
-											temp_customer_product1 -> next_product = Customer[id - 1].favourites;
-											Customer[id - 1].favourites = temp_customer_product;
+											temp = temp_product;
+											prev -> next_product = temp_product -> next_product;
+											temp_product = temp_product -> next_product;
+											//temp_product -> prev_product = prev;
+											free(temp);
+											printf("\nProduct removed from your wishlidt\n");
 										}
 									}
-								Customer[id - 1].favourites = sort_favourites(Customer[id - 1].favourites);
 								}
+							}
+							else
+							{
+								printf("Order cancelled\n");
 							}
 						}
 					}
@@ -785,6 +859,153 @@ void UserPage(int id,Product_type *Product[],Customer_type Customer[MAX])
 			}
 			default:
 				printf("Invalid input\n");
+		}
+	}
+}
+//sorting based on products
+Product_type* sort_on_purchases(Product_type *Product)
+{
+	int sort = 0;
+	Product_type *ptr1 = Product,*ptr2,*temp;
+	temp = (Product_type*)malloc(sizeof(Product_type));
+	while(ptr1 != NULL && sort == 0)
+	{
+		sort = 1;
+		ptr2 = Product;
+		while(ptr2 -> next_product != NULL)
+		{
+			if(ptr2 -> purchases < ptr2 -> next_product -> purchases)
+			{
+				sort = 0;
+				temp -> purchases = ptr2 -> purchases;
+				ptr2 -> purchases = ptr2 -> next_product -> purchases;
+				ptr2 -> next_product -> purchases = temp -> purchases;
+				temp -> availability = ptr2 -> availability;
+				ptr2 -> availability = ptr2 -> next_product -> availability;
+				ptr2 -> next_product -> availability = temp -> availability;
+				temp -> price = ptr2 -> price;
+				ptr2 -> price = ptr2 -> next_product -> price;
+				ptr2 -> next_product -> price = temp -> price;
+				strcpy(temp -> Model_name,ptr2 -> Model_name);
+				strcpy(ptr2 -> Model_name,ptr2 -> next_product -> Model_name);
+				strcpy(ptr2 -> next_product -> Model_name,temp -> Model_name);
+			}
+			ptr2 = ptr2 -> next_product;
+		}
+		ptr1 = ptr1 -> next_product;
+	}
+	return Product;
+}
+//sort customers
+void sort_customers_on_frequency(Customer_type Customer[MAX])
+{
+	int i = 0,j,sort = 0;
+	Customer_type temp;
+	while(Customer[i].name[0] != '\0' && sort == 0)
+	{
+		j = 0;
+		sort = 1;
+		while(Customer[j + 1].name[0] != '\0')
+		{
+			if(Customer[j].number_of_items_bought < Customer[j + 1].number_of_items_bought)
+			{
+				sort = 0;
+				temp = Customer[j];
+				Customer[j] = Customer[j + 1];
+				Customer[j + 1] = temp;
+			}
+			j++;
+		}
+		i++;
+	}
+}
+//Admin page
+void AdminPage(Product_type *Product[6],Customer_type Customer[MAX])
+{
+	int x = 1,i;
+	while(x <= 2 && x!= 3)
+	{
+		printf("Enter from the following:\n");
+		printf("1.Print the list of customers who purchase more often\n");
+		printf("2.Print the items purchased frequntly by customers\n");
+		printf("3.Logout\n");
+		scanf("%d",&x);
+		switch(x)
+		{
+			case 1:
+			{
+				Customer_type temp_customer_array[MAX];
+				for(i=0;i<MAX;i++)
+				{
+					temp_customer_array[i].number_of_items_bought = Customer[i].number_of_items_bought;
+					temp_customer_array[i].name[0] = '\0';
+					temp_customer_array[i].email[0] = '\0';
+					temp_customer_array[i].paymentMode[0] = '\0';
+					temp_customer_array[i].phone = 0;
+					temp_customer_array[i].user_id = 0;
+					temp_customer_array[i].wishlist = NULL;
+					temp_customer_array[i].history = NULL;
+				}
+				for(i=0;i<MAX;i++)
+				{
+					strcpy(temp_customer_array[i].name,Customer[i].name);
+					strcpy(temp_customer_array[i].email,Customer[i].email);
+					strcpy(temp_customer_array[i].paymentMode,Customer[i].paymentMode);
+					strcpy(temp_customer_array[i].address,Customer[i].address);
+					temp_customer_array[i].phone = Customer[i].phone;
+					temp_customer_array[i].user_id = Customer[i].user_id;
+					temp_customer_array[i].wishlist = Customer[i].wishlist;
+					temp_customer_array[i].history = Customer[i].history;
+				}
+				sort_customers_on_frequency(temp_customer_array);
+				for(i=0;temp_customer_array[i].name[0] != '\0';i++)
+				{
+					printf("Number of items customer has broought:%d\n",temp_customer_array[i].number_of_items_bought);
+					printf("Customer Name:%s\n",temp_customer_array[i].name);
+					printf("Customer Address:%s\n",temp_customer_array[i].address);
+					printf("Customer E-mail:%s\n",temp_customer_array[i].email);
+					printf("Customer phone:%ld\n",temp_customer_array[i].phone);
+					printf("Customer Payment Mode:%s\n",temp_customer_array[i].paymentMode);
+					printf("\n\n");
+				}
+				break;
+			}
+			case 2:
+			{
+				for(i=0;i<6;i++)
+				{
+					Product[i] = sort_on_purchases(Product[i]);
+				}
+				int product_select,count = 1;
+				printf("Choose the category from the following\n");
+				printf("1.Mobile phones\n");
+				printf("2.Mobile accessories\n");
+				printf("3.Laptops,Computer accessories and Tablets\n");
+				printf("4.Electronic gadgets\n");
+				printf("5.Games and gaming consoles\n");
+				printf("6.Home and Kitchen appliances\n");
+				scanf("%d",&product_select);
+				Product_type *temp_product = Product[product_select - 1];
+				while(temp_product != NULL)
+				{	
+					printf("%d\n",count);
+					count ++;
+					printf("Category:%s\n",temp_product -> category);
+					printf("Model name:%s\n",temp_product -> Model_name);
+					printf("Price:%d\n",temp_product -> price);
+					printf("Purchases:%d\n",temp_product -> purchases);
+					printf("Availability:%d\n",temp_product -> availability);
+					temp_product = temp_product -> next_product;
+					printf("\n");
+				}
+				break;
+			}
+			case 3:
+			{
+				break;
+			}
+			default:
+				printf("\nInvalid input\n");
 		}
 	}
 }
@@ -805,6 +1026,7 @@ int main()
 		Customer[i].email[0] = '\0';
 		Customer[i].paymentMode[0] = '\0';
 		Customer[i].phone = 0;
+		Customer[i].number_of_items_bought = 0;
 		Customer[i].user_id = 0;
 		Customer[i].wishlist = NULL;
 		Customer[i].history = NULL;
@@ -1141,6 +1363,7 @@ int main()
 	strcpy(Customer[0].address,"Boys Dormitory,Gryffindore tower,Hogwarts school of Witchcraft and Wizardy");
 	Customer[0].user_id = 001;
 	Customer[0].phone = 9823647631;
+	Customer[0].number_of_items_bought = 13;
 	//Customer's wishlist
 	temp_product = (Product_type*)malloc(sizeof(Product_type));
 	strcpy(temp_product -> Model_name,"Kent Water purifier");
@@ -1243,6 +1466,7 @@ int main()
 	strcpy(Customer[1].address,"Girl's Dormitory,Gryffindore tower,Hogwarts school of Witchcraft and Wizardy");
 	Customer[1].user_id = 002;
 	Customer[1].phone = 9960418518;
+	Customer[1].number_of_items_bought = 13;
 	//Customer's wishlist
 	temp_product = (Product_type*)malloc(sizeof(Product_type));
 	strcpy(temp_product -> Model_name,"SONY Xperia R1+");
@@ -1350,6 +1574,7 @@ int main()
 	int input = 1;
 	while(input <= 3)
 	{
+		
 		printf("Choose form the following:\n\n");
 		printf("1.Login as Customer\n");
 		printf("2.Register\n");
@@ -1362,6 +1587,7 @@ int main()
 			{
 				system("clear");
 				UserPage(id,Product,Customer);
+				system("clear");
 				printf("You have logged out successfully\n");
 			}
 			else
@@ -1388,7 +1614,10 @@ int main()
 			scanf("%[^\n]s",password);
 			if((strcmp(email,"renitath99@gmail.com") == 0)&&(strcmp(password,"RituThombre") == 0))
 			{
-				//AdminPage(Product,Customer);
+				system("clear");
+				AdminPage(Product,Customer);
+				system("clear");
+				printf("You have logged out successfully\n");
 			}
 			else
 			{
